@@ -148,6 +148,22 @@ class ViewConnection(unittest.TestCase):
             with self.assertRaises(ObsError):b.view_request(Mock(),request)
 
 class NetworkConnection(unittest.TestCase):
+    def test_ipv6_and_mapped_ipv4_are_canonicalized(self):
+        for host, expected in [('2001:db8:0:0::42', '2001:db8::42'), ('::ffff:192.168.1.42', '192.168.1.42')]:
+            obs = Mock()
+            obs.request.side_effect = [
+                {'inputKind': 'ios_camera_source', 'inputSettings': {'mode': 'usb'}}, {},
+                {'inputKind': 'ios_camera_source', 'inputSettings': {'mode': 'dial', 'host': expected}}]
+            with patch.object(b, 'selected_source', return_value=7):
+                b.set_connection(obs, [{'mode': 'dial', 'host': host}])
+            self.assertEqual(obs.request.call_args_list[1].args[1]['inputSettings']['host'], expected)
+
+    def test_ambiguous_source_registry_never_writes(self):
+        obs = Mock()
+        with patch.object(b, 'selected_source', side_effect=ObsError('Multiple sources')), self.assertRaises(ObsError):
+            b.set_connection(obs, [{'mode': 'dial', 'host': '192.168.1.42'}])
+        obs.request.assert_not_called()
+
     def test_wifi_updates_only_connection_fields_and_checks_readback(self):
         obs = Mock()
         obs.request.side_effect = [
@@ -171,7 +187,7 @@ class NetworkConnection(unittest.TestCase):
 
     def test_invalid_network_inputs_never_write(self):
         values = [{'mode': 'other'}, {'mode': 'usb', 'host': '192.168.1.2'}, {'mode': 'dial', 'host': '192.168.1.2', 'port': 80}]
-        values += [{'mode': 'dial', 'host': h} for h in [None, True, 'http://192.168.1.2', '127.0.0.1', '0.0.0.0', '224.0.0.1', 'bad;command', 'x'*65]]
+        values += [{'mode': 'dial', 'host': h} for h in [None, True, 'http://192.168.1.2', '127.0.0.1', '0.0.0.0', '224.0.0.1', '::1', '::', 'ff02::1', '::ffff:127.0.0.1', '::ffff:0.0.0.0', '::ffff:224.0.0.1', 'bad;command', 'x'*65]]
         for value in values:
             obs = Mock()
             with self.subTest(value=value), self.assertRaises(ObsError):
@@ -189,4 +205,3 @@ class NetworkConnection(unittest.TestCase):
             b.set_connection(obs, [{'mode': 'dial', 'host': '192.168.1.2'}])
 
 if __name__=='__main__':unittest.main()
-

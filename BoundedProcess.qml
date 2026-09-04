@@ -18,7 +18,7 @@ Process {
     rejected = true
     output = ""
     errorOutput = "Camera helper safety limit exceeded"
-    running = false // supervisor handles TERM, group KILL and reaping
+    running = false // Stop this helper; protocol readers also enforce deadlines.
   }
   stdout: SplitParser {
     splitMarker: "" // raw chunks: never buffer an unbounded unterminated line

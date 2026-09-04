@@ -1,6 +1,6 @@
 # Verification — 2026-09-04
 
-- 28 Python unit tests pass, covering source isolation, range/capability gates,
+- 39 Python unit, security and release tests pass, covering source isolation, range/capability gates,
   read-only polling, preview bounds, framing and Wi-Fi/USB settings updates.
 - Six functional QML tests pass (12 including setup/teardown), including
   continuous preview completion before drag release, coalesced requests,
@@ -19,3 +19,8 @@ Wi-Fi source settings use overlay updates for only mode and host and are read
 back from OBS. Tests reject malformed addresses, wrong source kinds and failed
 readback. USB switching retains the saved host. No device address, credentials,
 private camera images or development instruction files are distributed.
+
+The final release also runs checks from a fresh clone: tests/run verifies
+Python tests, installer syntax, the manifest and six functional QML tests.
+Security regressions cover unsafe credential files, malformed JSON, socket
+EOF and drip/ping bounds, mapped-address normalization and release exclusions.

@@ -12,7 +12,7 @@ from pathlib import Path
 if __name__ == '__main__':
     sys.dont_write_bytecode = True
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-from obs_control import Obs, ObsError, pan_crop
+from obs_control import Obs, ObsError
 from secure_io import json_object
 
 SOURCE = 'iPhone LensLink USB'
@@ -227,6 +227,8 @@ def set_connection(obs, values):
             address = ipaddress.ip_address(host.strip())
         except ValueError as error:
             raise ObsError('Enter the IP address shown in LensLink') from error
+        if isinstance(address, ipaddress.IPv6Address) and address.ipv4_mapped is not None:
+            address = address.ipv4_mapped
         if address.is_loopback or address.is_unspecified or address.is_multicast or '%' in str(address):
             raise ObsError('Enter the phone network IP address')
         settings['host'] = str(address)

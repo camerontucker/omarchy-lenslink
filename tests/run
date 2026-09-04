@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -euo pipefail
+repo_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
+cd "$repo_dir"
+python3 -B -m unittest discover -s tests -v
+bash -n install
+if command -v omarchy >/dev/null 2>&1; then omarchy plugin validate "$repo_dir"; fi
+if [[ -x /usr/lib/qt6/bin/qmltestrunner ]]; then
+ QT_QPA_PLATFORM=offscreen /usr/lib/qt6/bin/qmltestrunner -input tests
+else
+ echo 'QML tests skipped: Qt test runner unavailable'
+fi
+git diff --check

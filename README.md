@@ -4,6 +4,10 @@ Omarchy bar controls for an iPhone LensLink → OBS setup over USB or Wi-Fi.
 The separate Anker integration is preserved. No camera settings are applied
 when opening the panel or reconnecting.
 
+![LensLink panel with a synthetic placeholder and example values](preview.png)
+
+[Preview provenance](docs/ASSETS.md) · [Security verification](docs/SECURITY_VERIFICATION.md)
+
 ## Installation
 
 Requires **Omarchy Quattro**, Python 3, coreutils, the host Qt Multimedia

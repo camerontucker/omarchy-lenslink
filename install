@@ -14,5 +14,5 @@ for file in manifest.json Panel.qml CameraSlider.qml CropDragArea.qml ViewSchedu
     install -m 644 "$project_dir/$file" "$plugin_dir/$file"
 done
 omarchy-shell shell rescanPlugins
-omarchy bar put "$plugin_id" --after io.github.camerontucker.anker-c200
+omarchy bar put "$plugin_id"
 printf 'Installed iPhone LensLink. Configuration backup: %s\n' "$backup_dir"
