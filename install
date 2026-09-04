@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+project_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+plugin_id=io.github.camerontucker.lenslink
+config_dir=${XDG_CONFIG_HOME:-$HOME/.config}/omarchy
+plugin_dir=$config_dir/plugins/$plugin_id
+omarchy plugin validate "$project_dir"
+backup_dir=${XDG_CACHE_HOME:-$HOME/.cache}/omarchy-lenslink/install-$(date +%Y%m%d-%H%M%S)
+mkdir -p "$backup_dir"
+if [[ -f "$config_dir/shell.json" ]]; then cp -a "$config_dir/shell.json" "$backup_dir/shell.json"; fi
+if [[ -e "$plugin_dir" ]]; then cp -a "$plugin_dir" "$backup_dir/plugin"; fi
+mkdir -p "$plugin_dir"
+for file in manifest.json Panel.qml CameraSlider.qml CropDragArea.qml ViewScheduler.qml BoundedProcess.qml lenslink_backend.py obs_control.py secure_io.py LICENSE README.md; do
+    install -m 644 "$project_dir/$file" "$plugin_dir/$file"
+done
+omarchy-shell shell rescanPlugins
+omarchy bar put "$plugin_id" --after io.github.camerontucker.anker-c200
+printf 'Installed iPhone LensLink. Configuration backup: %s\n' "$backup_dir"

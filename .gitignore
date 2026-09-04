@@ -1,0 +1,6 @@
+work/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.remote-page.tmp
+PROJECT.md
