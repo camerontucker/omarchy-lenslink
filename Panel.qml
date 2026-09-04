@@ -65,6 +65,7 @@ Panel {
     readonly property bool snapshotActive: opened && previewEnabled && cameraStatus.obs.available && !previewActive
     readonly property bool busy: action.running
     readonly property var cameraState: cameraStatus.camera || ({})
+    readonly property var connectionState: cameraStatus.obs.connection || ({})
     readonly property bool live: cameraStatus.connected && !cameraStatus.standby
     readonly property string backend: Qt.resolvedUrl("lenslink_backend.py").toString().replace("file://", "")
     readonly property var virtualDevice: {
@@ -249,7 +250,7 @@ Panel {
                         Layout.fillWidth: true
                         textFormat: Text.PlainText
                         color: root.barForeground
-                        text: (root.cameraState.lens || "iPhone") + " · " + (root.cameraState.resolution || "USB") + (root.cameraState.fps ? " · " + root.cameraState.fps + " fps" : "")
+                        text: (root.cameraState.lens || "iPhone") + " · " + (root.connectionState.mode === "dial" ? "Wi-Fi" : root.connectionState.mode === "usb" ? "USB" : "LensLink") + (root.cameraState.resolution ? " · " + root.cameraState.resolution : "") + (root.cameraState.fps ? " · " + root.cameraState.fps + " fps" : "")
                     }
                     Rectangle {
                         id: previewBox
@@ -357,6 +358,47 @@ Panel {
                     ColumnLayout {
                         visible: tabs.currentIndex === 0
                         Layout.fillWidth: true
+                        Text {
+                            Layout.fillWidth: true
+                            text: "Connection · " + (root.connectionState.mode === "dial" ? "Wi-Fi" : root.connectionState.mode === "usb" ? "USB" : "unavailable")
+                            textFormat: Text.PlainText
+                            color: root.barForeground
+                        }
+                        TextField {
+                            id: wifiAddress
+                            Layout.fillWidth: true
+                            placeholderText: "Phone IP address shown in LensLink"
+                            maximumLength: 64
+                            enabled: !!root.connectionState.mode && !root.busy
+                            Binding {
+                                target: wifiAddress; property: "text"
+                                value: root.connectionState.host || ""
+                                when: !wifiAddress.activeFocus && !wifiAddress.edited
+                                restoreMode: Binding.RestoreNone
+                            }
+                            property bool edited: false
+                            onTextEdited: edited = true
+                        }
+                        RowLayout {
+                            Button {
+                                text: "Connect over Wi-Fi"
+                                enabled: !!root.connectionState.mode && wifiAddress.text.trim() !== "" && !root.busy
+                                onClicked: root.run("connection", [{mode: "dial", host: wifiAddress.text.trim()}])
+                            }
+                            Button {
+                                text: "Use USB"
+                                enabled: !!root.connectionState.mode && root.connectionState.mode !== "usb" && !root.busy
+                                onClicked: root.run("connection", [{mode: "usb"}])
+                            }
+                        }
+                        Text {
+                            Layout.fillWidth: true
+                            text: "For Wi-Fi, keep LensLink open and use the same network as this computer. Switching reconnects the camera."
+                            textFormat: Text.PlainText
+                            wrapMode: Text.WordWrap
+                            color: root.barForeground
+                            opacity: 0.7
+                        }
                         ComboBox {
                             Layout.fillWidth: true
                             model: root.lensChoices

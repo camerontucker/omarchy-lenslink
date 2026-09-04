@@ -1,6 +1,7 @@
 #!/usr/bin/python3 -I
 """Local LensLink v1.10.0 control bridge; no writes during polling."""
 import http.client
+import ipaddress
 import json
 import math
 import re
@@ -199,6 +200,49 @@ def obs_status(obs):
     return result
 
 
+def connection_settings(obs):
+    data = obs.request('GetInputSettings', {'inputName': SOURCE})
+    if data.get('inputKind') != 'ios_camera_source' or type(data.get('inputSettings')) is not dict:
+        raise ObsError('Expected the existing LensLink camera source')
+    settings = data['inputSettings']
+    mode = settings.get('mode', 'dial')
+    host = settings.get('host', '')
+    if mode not in ('usb', 'dial') or type(host) is not str or len(host) > 144:
+        raise ObsError('Invalid LensLink connection settings')
+    return {'mode': mode, 'host': host}
+
+
+def set_connection(obs, values):
+    if len(values) != 1 or type(values[0]) is not dict:
+        raise ObsError('Connection settings required')
+    value = values[0]
+    if set(value) - {'mode', 'host'} or value.get('mode') not in ('usb', 'dial'):
+        raise ObsError('Choose USB or Wi-Fi')
+    settings = {'mode': value['mode']}
+    if value['mode'] == 'dial':
+        host = value.get('host')
+        if type(host) is not str or len(host) > 64:
+            raise ObsError('Enter the IP address shown in LensLink')
+        try:
+            address = ipaddress.ip_address(host.strip())
+        except ValueError as error:
+            raise ObsError('Enter the IP address shown in LensLink') from error
+        if address.is_loopback or address.is_unspecified or address.is_multicast or '%' in str(address):
+            raise ObsError('Enter the phone network IP address')
+        settings['host'] = str(address)
+    elif 'host' in value:
+        raise ObsError('USB does not require an IP address')
+    # Verify both APIs refer to the one existing camera, even while disconnected.
+    selected_source()
+    connection_settings(obs)
+    obs.request('SetInputSettings', {'inputName': SOURCE, 'inputSettings': settings, 'overlay': True})
+    actual = connection_settings(obs)
+    if any(actual.get(key) != expected for key, expected in settings.items()):
+        raise ObsError('OBS did not confirm the connection settings')
+    label = 'Wi-Fi' if settings['mode'] == 'dial' else 'USB'
+    return {'message': label + ' selected; waiting for LensLink to connect', 'connection': actual}
+
+
 def state():
     result = {'connected': False, 'standby': False, 'camera': {}, 'status': 'LensLink unavailable',
               'obs': {'available': False, 'virtual': False, 'scene': ''}}
@@ -211,7 +255,10 @@ def state():
         result['status'] = str(error)[:256] if isinstance(error, ObsError) else 'LensLink API unavailable'
     try:
         obs = Obs()
-        try: result['obs'] = obs_status(obs)
+        try:
+            result['obs'] = obs_status(obs)
+            try: result['obs']['connection'] = connection_settings(obs)
+            except ObsError: pass
         finally: obs.ws.close()
     except Exception:
         result['obs']['error'] = 'OBS WebSocket unavailable; open OBS and enable its WebSocket server'
@@ -281,7 +328,9 @@ def view_serve():
 def obs_action(command, values):
     obs = Obs()
     try:
-        if command == 'preview':
+        if command == 'connection':
+            return set_connection(obs, values)
+        elif command == 'preview':
             scene = obs.request('GetCurrentProgramScene')['currentProgramSceneName']
             return preview_payload(obs, scene)
         elif command == 'convert_zoom':

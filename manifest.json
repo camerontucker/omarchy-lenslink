@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "id": "io.github.camerontucker.lenslink",
   "name": "iPhone LensLink",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "author": "Cam Tucker",
   "license": "MIT",
-  "description": "iPhone USB camera status, LensLink controls and OBS virtual-camera preview",
+  "description": "iPhone USB and Wi-Fi camera controls, LensLink status and OBS preview",
   "kinds": ["bar-widget"],
   "entryPoints": {"barWidget": "Panel.qml"},
   "barWidget": {

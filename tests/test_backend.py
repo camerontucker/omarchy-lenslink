@@ -147,7 +147,46 @@ class ViewConnection(unittest.TestCase):
         for request in [{'command':'shell','arguments':[],'preview':False},{'command':'pan','arguments':[1]*5,'preview':False}]:
             with self.assertRaises(ObsError):b.view_request(Mock(),request)
 
+class NetworkConnection(unittest.TestCase):
+    def test_wifi_updates_only_connection_fields_and_checks_readback(self):
+        obs = Mock()
+        obs.request.side_effect = [
+            {'inputKind': 'ios_camera_source', 'inputSettings': {'mode': 'usb', 'usb_device': 'keep'}},
+            {},
+            {'inputKind': 'ios_camera_source', 'inputSettings': {'mode': 'dial', 'host': '192.168.1.42'}}]
+        with patch.object(b, 'selected_source', return_value=7):
+            result = b.set_connection(obs, [{'mode': 'dial', 'host': '192.168.1.42'}])
+        self.assertIn('waiting', result['message'])
+        self.assertEqual(obs.request.call_args_list[1].args, ('SetInputSettings', {
+            'inputName': b.SOURCE, 'inputSettings': {'mode': 'dial', 'host': '192.168.1.42'}, 'overlay': True}))
+
+    def test_usb_preserves_saved_wifi_address(self):
+        obs = Mock()
+        obs.request.side_effect = [
+            {'inputKind': 'ios_camera_source', 'inputSettings': {'mode': 'dial', 'host': '192.168.1.2'}}, {},
+            {'inputKind': 'ios_camera_source', 'inputSettings': {'mode': 'usb', 'host': '192.168.1.2'}}]
+        with patch.object(b, 'selected_source', return_value=7):
+            b.set_connection(obs, [{'mode': 'usb'}])
+        self.assertEqual(obs.request.call_args_list[1].args[1]['inputSettings'], {'mode': 'usb'})
+
+    def test_invalid_network_inputs_never_write(self):
+        values = [{'mode': 'other'}, {'mode': 'usb', 'host': '192.168.1.2'}, {'mode': 'dial', 'host': '192.168.1.2', 'port': 80}]
+        values += [{'mode': 'dial', 'host': h} for h in [None, True, 'http://192.168.1.2', '127.0.0.1', '0.0.0.0', '224.0.0.1', 'bad;command', 'x'*65]]
+        for value in values:
+            obs = Mock()
+            with self.subTest(value=value), self.assertRaises(ObsError):
+                b.set_connection(obs, [value])
+            obs.request.assert_not_called()
+
+    def test_wrong_source_or_unconfirmed_settings_fail(self):
+        obs = Mock()
+        obs.request.return_value = {'inputKind': 'v4l2_input', 'inputSettings': {'mode': 'usb'}}
+        with patch.object(b, 'selected_source', return_value=7), self.assertRaises(ObsError):
+            b.set_connection(obs, [{'mode': 'usb'}])
+        self.assertEqual(obs.request.call_count, 1)
+        obs.request.return_value = {'inputKind': 'ios_camera_source', 'inputSettings': {'mode': 'usb'}}
+        with patch.object(b, 'selected_source', return_value=7), self.assertRaisesRegex(ObsError, 'confirm'):
+            b.set_connection(obs, [{'mode': 'dial', 'host': '192.168.1.2'}])
+
 if __name__=='__main__':unittest.main()
-
-
 
