@@ -190,8 +190,16 @@ def drag_crop(transform, dx, dy, width, height):
 
 def obs_status(obs):
     scene = obs.request('GetCurrentProgramScene')['currentProgramSceneName']
-    result = {'available': True, 'scene': scene,
-              'virtual': obs.request('GetVirtualCamStatus')['outputActive']}
+    result = {'available': True, 'scene': scene, 'virtual': False,
+              'virtualSupported': False}
+    try:
+        virtual = obs.request('GetVirtualCamStatus')['outputActive']
+        if type(virtual) is not bool: raise ObsError('Invalid virtual camera status')
+        result.update(virtual=virtual, virtualSupported=True)
+    except (ObsError, KeyError):
+        # Virtual camera is optional. Its absence must not hide otherwise
+        # working OBS input settings, framing, preview, or USB/Wi-Fi switching.
+        pass
     if scene == SCENE:
         try:
             scene, item, _ = obs.camera_item()

@@ -70,6 +70,16 @@ class ObsIsolation(unittest.TestCase):
         b.obs_status(obs)
         self.assertEqual([c.args[0] for c in obs.request.call_args_list],['GetCurrentProgramScene','GetVirtualCamStatus'])
 
+    def test_missing_virtual_camera_does_not_hide_obs_or_connection(self):
+        obs=Mock()
+        obs.request.side_effect=[{'currentProgramSceneName':'Other'},ObsError('unsupported'),
+            {'inputKind':'ios_camera_source','inputSettings':{'mode':'usb','host':'192.168.1.42'}}]
+        status=b.obs_status(obs)
+        self.assertTrue(status['available'])
+        self.assertFalse(status['virtualSupported'])
+        status['connection']=b.connection_settings(obs)
+        self.assertEqual(status['connection']['mode'],'usb')
+
 class Preview(unittest.TestCase):
     def test_preview_only_reads(self):
         obs=Mock()

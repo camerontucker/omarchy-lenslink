@@ -318,8 +318,8 @@ Panel {
                         Layout.fillWidth: true
                         Button { text: "Use iPhone scene"; enabled: root.cameraStatus.obs.available && !root.busy; onClicked: root.run("select_scene") }
                         Button {
-                            text: root.cameraStatus.obs.virtual ? "Stop virtual camera" : "Start virtual camera"
-                            enabled: root.cameraStatus.obs.available && !root.busy && (root.cameraStatus.obs.virtual || (root.live && root.cameraStatus.obs.scene === "iPhone LensLink"))
+                            text: !root.cameraStatus.obs.virtualSupported ? "Virtual camera unavailable" : (root.cameraStatus.obs.virtual ? "Stop virtual camera" : "Start virtual camera")
+                            enabled: root.cameraStatus.obs.virtualSupported && root.cameraStatus.obs.available && !root.busy && (root.cameraStatus.obs.virtual || (root.live && root.cameraStatus.obs.scene === "iPhone LensLink"))
                             onClicked: root.run(root.cameraStatus.obs.virtual ? "stop_virtual" : "start_virtual")
                         }
                     }
