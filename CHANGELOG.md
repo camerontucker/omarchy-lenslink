@@ -8,6 +8,8 @@
   dedicated 180° rotation button.
 - Confirm control compatibility with LensLink 1.10.0 through 1.12.0 and current
   OBS Studio 32.2.
+- Explain that LensLink supports Portrait background blur only on the Front
+  camera and show the required phone-side restart steps in the panel.
 
 ## 0.4.0 — 2026-09-04
 

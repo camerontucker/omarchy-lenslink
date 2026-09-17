@@ -22,7 +22,7 @@ webcam
 
 ### Maintainer notes
 
-iPhone LensLink adds camera controls and live OBS framing to the Omarchy bar. It supports an existing LensLink iPhone camera over USB or Wi-Fi, with explicit connection switching, camera/exposure/white-balance/format/audio controls, preview, trackpad zoom and smooth draggable crop. Portrait and Studio Light remain controlled on the iPhone.
+iPhone LensLink adds camera controls and live OBS framing to the Omarchy bar. It supports an existing LensLink iPhone camera over USB or Wi-Fi, with explicit connection switching, camera/exposure/white-balance/format/audio controls, preview, trackpad zoom and smooth draggable crop. LensLink limits Portrait background blur to the Front camera and keeps its system-effects settings on the phone; the panel states that constraint explicitly.
 
 Requires Omarchy Quattro, system Python/Qt Multimedia, OBS Studio 32+ with WebSocket enabled, and LensLink on the computer and phone. Compatible with LensLink 1.10.0–1.12.0; live-tested with 1.10.0 and checked against the tagged 1.12.0 control API. The README documents the exact scene/source names and installation, update and removal. The plugin has no third-party Python dependencies, telemetry, package installation, downloaded executables, or privileged operations. An optional Start OBS button starts only an existing fixed user service; it does not create one.
 

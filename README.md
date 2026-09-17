@@ -98,10 +98,12 @@ The controls are inside the plugin, gated by the phone's advertised state:
   microphone when enabled, automatic camera start, lip-sync recalibration
   when enabled.
 
-Portrait and Studio Light still belong to the iPhone's Control Center while
-LensLink is streaming. They have no supported remote toggle. Effects are
-already included in video received by OBS. Changing lens or format can make
-Apple effects unavailable; the plugin only changes them on explicit actions.
+Portrait background blur is a LensLink limitation: it is supported only on the
+Front camera, has no remote toggle, and rear Main, Ultra Wide and Telephoto
+remain unblurred. On the phone, enable **Options → Allow system video effects**,
+restart the camera, then enable Portrait in Control Center. Studio Light and
+other Apple effects remain dependent on the phone and capture format. Any
+effect iOS applies is already included in the video received by OBS.
 
 **Use iPhone scene** selects the existing `iPhone LensLink` program scene.
 **Start virtual camera** requires a connected phone in the program scene.

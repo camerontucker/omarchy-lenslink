@@ -525,7 +525,9 @@ Panel {
                         Layout.fillWidth: true
                         wrapMode: Text.WordWrap
                         color: root.barForeground
-                        text: "Portrait & Studio Light: adjust in the iPhone’s Control Center while LensLink is streaming. Effects carry through to OBS. Changing lens may make effects unavailable."
+                        text: root.cameraState.lens === "Front"
+                            ? "Portrait blur: in LensLink Options enable Allow system video effects and restart the camera, then enable Portrait in the iPhone’s Control Center. LensLink has no remote toggle."
+                            : "Portrait blur is unavailable on LensLink’s rear lenses. Switch to Front, then enable the phone-side LensLink and Control Center settings. Rear Main, Ultra Wide and Telephoto remain sharp."
                     }
                     RowLayout {
                         Button {
