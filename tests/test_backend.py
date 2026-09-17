@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import lenslink_backend as b
-from obs_control import Obs, ObsError
+from obs_control import Obs, ObsError, transform_value
 
 class Controls(unittest.TestCase):
     def setUp(self):
@@ -117,6 +117,71 @@ class Framing(unittest.TestCase):
     def test_bad_zoom_rejected(self):
         for value in [0,11,True,float('nan')]:
             with self.assertRaises(ObsError):b.zoom_crop(self.frame,value)
+
+    def test_rotation_preserves_frame_position(self):
+        transform = dict(self.frame, rotation=0, alignment=5, positionX=0,
+                         positionY=0, width=1920, height=1080,
+                         boundsWidth=1920, boundsHeight=1080,
+                         boundsType='OBS_BOUNDS_SCALE_INNER')
+        self.assertEqual(b.orientation_update(transform),
+                         {'rotation':180, 'positionX':1920, 'positionY':1080,
+                          'boundsWidth':1920, 'boundsHeight':1080})
+        transform.update(rotation=180, positionX=1920, positionY=1080)
+        self.assertEqual(b.orientation_update(transform),
+                         {'rotation':0, 'positionX':0, 'positionY':0,
+                          'boundsWidth':1920, 'boundsHeight':1080})
+
+    def test_portrait_is_centered_and_swaps_bounds(self):
+        transform = dict(self.frame, rotation=0, alignment=5, positionX=0,
+                         positionY=0, width=1920, height=1080,
+                         boundsWidth=1920, boundsHeight=1080,
+                         boundsType='OBS_BOUNDS_SCALE_INNER')
+        self.assertEqual(b.orientation_update(transform, 90),
+                         {'rotation':90, 'positionX':1920, 'positionY':0,
+                          'boundsWidth':1080, 'boundsHeight':1920})
+        transform.update(rotation=90, positionX=1920, positionY=0,
+                         boundsWidth=1080, boundsHeight=1920)
+        self.assertEqual(b.orientation_update(transform, 270),
+                         {'rotation':270, 'positionX':0, 'positionY':1080,
+                          'boundsWidth':1080, 'boundsHeight':1920})
+        expected = b.orientation_update(dict(transform, rotation=0,
+                                              boundsWidth=1920, boundsHeight=1080), 90)
+        self.assertTrue(b.orientation_confirmed(dict(expected, positionX=1920.25), expected))
+        self.assertFalse(b.orientation_confirmed(dict(expected, positionX=1921), expected))
+
+    def test_custom_rotation_or_alignment_is_rejected(self):
+        base = dict(self.frame, rotation=90, alignment=5, positionX=0,
+                    positionY=0, width=1920, height=1080,
+                    boundsWidth=1920, boundsHeight=1080,
+                    boundsType='OBS_BOUNDS_SCALE_INNER')
+        base['rotation'] = 45
+        with self.assertRaisesRegex(ObsError, 'right angle'):
+            b.orientation_update(base)
+        base.update(rotation=0, alignment=0)
+        with self.assertRaisesRegex(ObsError, 'top-left'):
+            b.orientation_update(base)
+
+    def test_rotation_action_checks_readback_and_crop(self):
+        original = dict(self.frame, rotation=0, alignment=5, positionX=0,
+                        positionY=0, width=1920, height=1080,
+                        boundsWidth=1920, boundsHeight=1080,
+                        boundsType='OBS_BOUNDS_SCALE_INNER')
+        update = {'rotation':180, 'positionX':1920, 'positionY':1080,
+                  'boundsWidth':1920, 'boundsHeight':1080}
+        actual = dict(original, **update)
+        obs = Mock()
+        obs.camera_item.return_value = (b.SCENE, 1, b.SOURCE)
+        obs.transform.side_effect = [original, actual]
+        with patch.object(b, 'Obs', return_value=obs):
+            result = b.obs_action('rotate_180', [])
+        obs.set_orientation.assert_called_once_with(b.SCENE, 1, update)
+        self.assertIn('flipped', result['message'])
+
+    def test_malformed_obs_orientation_is_rejected(self):
+        for key, value in [('rotation', '180'), ('positionX', True),
+                           ('width', 0), ('alignment', 5.5)]:
+            with self.subTest(key=key), self.assertRaises(ObsError):
+                transform_value({key:value})
 
 class AdvancedControls(unittest.TestCase):
     run_control = Controls.run_control

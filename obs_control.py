@@ -56,6 +56,16 @@ def transform_value(value):
     value = object_value(value)
     for name in ("cropLeft", "cropRight", "cropTop", "cropBottom", "sourceWidth", "sourceHeight"):
         number(value.get(name, 0))
+    for name in ("width", "height", "boundsWidth", "boundsHeight"):
+        if name in value:
+            number(value[name], 1, 32768)
+    for name in ("positionX", "positionY"):
+        if name in value:
+            number(value[name], -32768, 32768)
+    if "rotation" in value:
+        number(value["rotation"], -3600, 3600)
+    if "alignment" in value:
+        number(value["alignment"], 0, 15, True)
     return value
 
 
@@ -284,5 +294,24 @@ class Obs:
                 "sceneName": scene,
                 "sceneItemId": item_id,
                 "sceneItemTransform": crop,
+            },
+        )
+
+    def set_orientation(self, scene: str, item_id: int, transform: dict) -> None:
+        expected = {"rotation", "positionX", "positionY", "boundsWidth", "boundsHeight"}
+        if type(transform) is not dict or set(transform) != expected:
+            raise ObsError("invalid OBS orientation transform")
+        if transform["rotation"] not in (0, 90, 180, 270):
+            raise ObsError("invalid OBS orientation rotation")
+        number(transform["positionX"], -32768, 32768)
+        number(transform["positionY"], -32768, 32768)
+        number(transform["boundsWidth"], 1, 32768)
+        number(transform["boundsHeight"], 1, 32768)
+        self.request(
+            "SetSceneItemTransform",
+            {
+                "sceneName": scene,
+                "sceneItemId": item_id,
+                "sceneItemTransform": transform,
             },
         )

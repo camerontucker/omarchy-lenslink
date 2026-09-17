@@ -12,7 +12,8 @@ when opening the panel or reconnecting.
 
 Requires **Omarchy Quattro**, Python 3, coreutils, the host Qt Multimedia
 components, OBS Studio 32+ with its WebSocket server enabled, and LensLink
-on the computer and iPhone. Tested with LensLink 1.10.0. Install these separately;
+on the computer and iPhone. Compatible with LensLink 1.10.0–1.12.0; live-tested
+with 1.10.0 and checked against the 1.12.0 control API. Install these separately;
 the plugin does not install packages or create services.
 
 Create an OBS scene named `iPhone LensLink` and one LensLink Camera input named
@@ -61,7 +62,10 @@ and hostnames remain available in OBS's own LensLink source properties.
 **Framing zoom** creates an OBS crop. Zoom above 1×, then drag the picture to
 pan it. Hover over the picture and pinch or use two-finger scroll to zoom
 (1×–5×). Panning updates while dragging, preserves the crop size and clamps at
-the image edges. **Center crop** recenters without changing magnification.
+the image edges. **Center crop** recenters without changing magnification. The
+orientation selector supports landscape, portrait and both flipped positions
+while retaining the current crop. LensLink intentionally transmits a fixed
+landscape sensor frame, so the plugin cannot detect physical phone rotation.
 At 1× the complete image is visible and cannot be panned.
 
 **Lens zoom (fixed center)** changes the phone's camera zoom. The phone has
@@ -110,7 +114,7 @@ created by the plugin; if you do not have it, launch OBS normally.
 
 ## Requirements and targeting
 
-Uses installed LensLink **1.10.0**, HTTP API `127.0.0.1:9980`, OBS WebSocket,
+Uses LensLink **1.10.0–1.12.0**, HTTP API `127.0.0.1:9980`, OBS WebSocket,
 Python standard library, coreutils timeout and Omarchy/Quickshell's existing
 Qt components. No production dependencies added.
 
@@ -125,7 +129,7 @@ arriving during continuous dragging; input never restarts that clock. It closes 
 a deadline and failed connections reconnect. Other controls use short-lived
 helpers. Tabs have additional horizontal and vertical padding.
 
-HTTP commands discover the source ID and use `?src=<id>`. LensLink v1.10.0
+HTTP commands discover the source ID and use `?src=<id>`. LensLink 1.10–1.12
 falls back to its first source for an unknown ID; the helper refuses a
 multi-source registry to avoid ordinary misrouting. Don't replace sources
 while commands are in flight: upstream has no atomic identity check. HTTP
@@ -148,8 +152,8 @@ See VERIFICATION.md for live tests and limits.
 
 ## API evidence and reuse
 
-- [LensLink v1.10.0 web-control.c](https://github.com/MyNamesEMurray/LensLink/blob/v1.10.0/obs-plugin/src/web-control.c): API routes, source selection and control payloads.
-- [LensLink v1.10.0 CameraManager.swift](https://github.com/MyNamesEMurray/LensLink/blob/v1.10.0/ios-app/Sources/CameraManager.swift): camera capabilities and phone-controlled Apple effects.
+- [LensLink v1.12.0 web-control.c](https://github.com/MyNamesEMurray/LensLink/blob/v1.12.0/obs-plugin/src/web-control.c): API routes, source selection and control payloads.
+- [LensLink v1.12.0 CameraManager.swift](https://github.com/MyNamesEMurray/LensLink/blob/v1.12.0/ios-app/Sources/CameraManager.swift): fixed wire orientation, camera capabilities and phone-controlled Apple effects.
 - [Apple Studio Light API](https://developer.apple.com/documentation/avfoundation/avcapturedevice/isstudiolightenabled): read-only enabled state.
 
 The OBS transport, secure file utilities, bounded process component and MIT

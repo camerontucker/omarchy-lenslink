@@ -327,6 +327,22 @@ Panel {
                         CheckBox { text: "Preview"; checked: root.previewEnabled; onToggled: root.previewEnabled = checked }
                         Button { text: "Center crop"; enabled: root.cameraStatus.obs.scene === "iPhone LensLink" && !root.busy; onClicked: root.run("center") }
                     }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text { text: "Orientation"; color: root.barForeground }
+                        ComboBox {
+                            Layout.fillWidth: true
+                            model: ["Landscape", "Portrait", "Landscape flipped", "Portrait flipped"]
+                            currentIndex: [0, 90, 180, 270].indexOf(Number(root.framing.rotation))
+                            enabled: root.cameraStatus.obs.scene === "iPhone LensLink" && currentIndex >= 0 && !root.busy
+                            onActivated: function(index) { root.run("orientation", [[0, 90, 180, 270][index]]) }
+                        }
+                        Button {
+                            text: "Rotate 180°"
+                            enabled: root.cameraStatus.obs.scene === "iPhone LensLink" && typeof root.framing.rotation === "number" && !root.busy
+                            onClicked: root.run("rotate_180")
+                        }
+                    }
                     Text {
                         Layout.fillWidth: true
                         text: root.framing.zoom > 1.001 ? "Drag to reframe · pinch or scroll over the picture to zoom" : "Pinch or scroll over the picture to zoom, then drag to reframe."

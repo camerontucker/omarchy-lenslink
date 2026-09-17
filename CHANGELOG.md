@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0 — 2026-09-17
+
+- Add landscape, portrait and flipped orientation controls while retaining the
+  current crop and fitting portrait video within the OBS canvas.
+- Keep the selected orientation index stable during activation and provide a
+  dedicated 180° rotation button.
+- Confirm control compatibility with LensLink 1.10.0 through 1.12.0 and current
+  OBS Studio 32.2.
+
 ## 0.4.0 — 2026-09-04
 
 - Add Wi-Fi/IP and USB switching with exact-source checks and settings readback.

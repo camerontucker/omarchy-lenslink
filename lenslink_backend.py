@@ -156,8 +156,44 @@ def framing_state(transform):
     width = numeric(transform.get('sourceWidth'), 1, 32768)
     height = numeric(transform.get('sourceHeight'), 1, 32768)
     visible = width - transform.get('cropLeft', 0) - transform.get('cropRight', 0)
+    rotation = numeric(transform.get('rotation', 0), -3600, 3600) % 360
+    canonical = next((angle for angle in (0, 90, 180, 270) if abs(rotation-angle) < .01), None)
     return {'zoom': width / max(1, visible), 'width': width, 'height': height,
+            'rotation': canonical,
             'crop': {key: transform.get(key, 0) for key in ('cropLeft','cropRight','cropTop','cropBottom')}}
+
+
+def orientation_update(transform, target=None):
+    rotation = numeric(transform.get('rotation', 0), -3600, 3600) % 360
+    current = next((angle for angle in (0, 90, 180, 270) if abs(rotation-angle) < .01), None)
+    if current is None:
+        raise ObsError('Reset the source rotation to a right angle in OBS first')
+    if target is None:
+        target = (current + 180) % 360
+    if type(target) not in (int, float) or target not in (0, 90, 180, 270):
+        raise ObsError('Choose a supported screen orientation')
+    if numeric(transform.get('alignment'), 0, 15) != 5:
+        raise ObsError('Use top-left source alignment in OBS before rotating')
+    if transform.get('boundsType') != 'OBS_BOUNDS_SCALE_INNER':
+        raise ObsError('Use Scale to inner bounds in OBS before rotating')
+    bound_w = numeric(transform.get('boundsWidth'), 1, 32768)
+    bound_h = numeric(transform.get('boundsHeight'), 1, 32768)
+    canvas_w, canvas_h = max(bound_w, bound_h), min(bound_w, bound_h)
+    target_w, target_h = (canvas_h, canvas_w) if target in (90, 270) else (canvas_w, canvas_h)
+    # OBS applies crop and inner-bounds scaling before rotation. These four
+    # canonical top-left origins keep the result in the landscape canvas;
+    # swapped portrait bounds supply centered pillarboxing.
+    positions = {0:(0, 0), 90:(canvas_w, 0),
+                 180:(canvas_w, canvas_h), 270:(0, canvas_h)}
+    x, y = positions[target]
+    return {'rotation': target, 'positionX': x, 'positionY': y,
+            'boundsWidth': target_w, 'boundsHeight': target_h}
+
+
+def orientation_confirmed(actual, expected):
+    return all(abs(actual.get(key, float('inf')) - value)
+               < (.51 if key in ('positionX','positionY') else .01)
+               for key, value in expected.items())
 
 
 def zoom_crop(transform, zoom):
@@ -390,6 +426,27 @@ def obs_action(command, values):
                 y = int(transform.get('cropTop', 0) + transform.get('cropBottom', 0))
                 crop = dict(cropLeft=x//2, cropRight=x-x//2, cropTop=y//2, cropBottom=y-y//2)
             obs.set_crop(scene, item, crop)
+        elif command in ('rotate_180', 'orientation'):
+            scene, item, _ = obs.camera_item()
+            original = obs.transform(scene, item)
+            if command == 'orientation':
+                if len(values) != 1: raise ObsError('Choose one screen orientation')
+                update = orientation_update(original, values[0])
+            else:
+                update = orientation_update(original)
+            orientation_keys = ('rotation','positionX','positionY','boundsWidth','boundsHeight')
+            original_orientation = {key: original.get(key, 0) for key in orientation_keys}
+            original_crop = {key: original.get(key, 0) for key in ('cropLeft','cropRight','cropTop','cropBottom')}
+            obs.set_orientation(scene, item, update)
+            actual = obs.transform(scene, item)
+            confirmed = orientation_confirmed(actual, update)
+            crop_preserved = all(actual.get(key, 0) == value for key, value in original_crop.items())
+            if not confirmed or not crop_preserved:
+                try: obs.set_orientation(scene, item, original_orientation)
+                except Exception: pass
+                raise ObsError('OBS did not confirm the orientation change')
+            labels = {0:'Landscape', 90:'Portrait', 180:'Landscape flipped', 270:'Portrait flipped'}
+            return {'message': labels[update['rotation']] + ' orientation selected'}
         else: raise ObsError('Unsupported OBS action')
         return {'message': 'OBS updated'}
     finally:
